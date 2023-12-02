@@ -1,34 +1,45 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
+const fs = require('fs');
 
-// replace the value below with the Telegram token you receive from @BotFather
 const token = process.env.TELEGRAM_BOT_TOKEN;
-
-// Create a bot that uses 'polling' to fetch new updates
 const bot = new TelegramBot(token, { polling: true });
 
-// Matches "/echo [whatever]"
-bot.onText(/\/echo (.+)/, (msg, match) => {
-    // 'msg' is the received Message from Telegram
-    // 'match' is the result of executing the regexp above on the text content
-    // of the message
-
-    const chatId = msg.chat.id;
-    const resp = match[1]; // the captured "whatever"
-
-    // send back the matched "whatever" to the chat
-    bot.sendMessage(chatId, resp);
+// Bot commands
+const commands = [];
+fs.readdirSync('./commands').forEach(file => {
+    commands.push(require(`./commands/${file}`));
 });
 
-// Listen for any kind of message. There are different kinds of
-// messages.
+// Bot actions
 bot.on('message', (msg) => {
-    // console.log(msg);
-    // const chatId = msg.chat.id;
+    const text = msg.text.toLowerCase();
 
-    // send a message to the chat acknowledging receipt of their message
-    // bot.sendMessage(chatId, 'Received your message');
+    const command = commands.find(command => '/' + command.name === text);
+    if (!(command && command.middleware(msg))) return;
+
+    command.execute(bot, msg);
 });
+
+const sendStartMessage = (chatId) => {
+    const keyboard = {
+        inline_keyboard: [
+            [
+                { text: '-5', callback_data: 'interval-5' },
+                { text: '-1', callback_data: 'interval-1' },
+                { text: 'Current', callback_data: 'interval-current' },
+                { text: '+1', callback_data: 'interval+1' },
+                { text: '+5', callback_data: 'interval+5' }
+            ],
+        ],
+    };
+
+    const options = {
+        reply_markup: JSON.stringify(keyboard),
+    };
+
+    bot.sendMessage(chatId, 'Choose an interval:', options);
+}
 
 bot.on('location', (msg) => {
     const { latitude, longitude } = msg.location;
@@ -43,3 +54,7 @@ bot.on('edited_message', msg => {
         bot.sendMessage(chatId, `Latitude: ${latitude}\nLongitude: ${longitude}`);
     }
 })
+
+bot.on('polling_error', (error) => {
+    console.log(error);
+});
