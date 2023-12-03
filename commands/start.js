@@ -6,8 +6,22 @@ module.exports = {
     middleware(msg) {
         return true;
     },
-    execute(bot, msg) {
+    async execute(bot, msg) {
         const chatId = msg.chat.id;
-        bot.sendMessage(chatId, 'Game started!');
+        try {
+            const game = new Game(chatId, msg.from.language_code);
+            const arguments = [
+                { key: '{interval}', value: game.interval },
+                { key: '{hunted}', value: game.hunted.map(hunted => hunted.first_name).join('\n') }
+            ];
+            const startMessage = await bot.sendMessage(
+                chatId,
+                game.getMessage('game_initialize', arguments),
+                game.getStartMessageOptions()
+            );
+            game.startMessage = startMessage;
+        } catch (error) {
+            bot.sendMessage(chatId, error.message);
+        }
     }
 }

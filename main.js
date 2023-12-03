@@ -1,9 +1,11 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
+const Game = require('./game');
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
+Game.bot = bot;
 
 // Bot commands
 const commands = [];
@@ -16,45 +18,40 @@ bot.on('message', (msg) => {
     const text = msg.text.toLowerCase();
 
     const command = commands.find(command => '/' + command.name === text);
-    if (!(command && command.middleware(msg))) return;
+    if (!command) return;
+    const middleware = command.middleware(msg);
+    if (middleware !== true) {
+        bot.sendMessage(msg.chat.id, middleware);
+        return;
+    }
 
     command.execute(bot, msg);
 });
 
-const sendStartMessage = (chatId) => {
-    const keyboard = {
-        inline_keyboard: [
-            [
-                { text: '-5', callback_data: 'interval-5' },
-                { text: '-1', callback_data: 'interval-1' },
-                { text: 'Current', callback_data: 'interval-current' },
-                { text: '+1', callback_data: 'interval+1' },
-                { text: '+5', callback_data: 'interval+5' }
-            ],
-        ],
-    };
+// For location sharing
+// bot.on('location', (msg) => {
+//     const { latitude, longitude } = msg.location;
+//     const chatId = msg.chat.id;
+//     bot.sendMessage(chatId, `Latitude: ${latitude}\nLongitude: ${longitude}`);
+// })
 
-    const options = {
-        reply_markup: JSON.stringify(keyboard),
-    };
-
-    bot.sendMessage(chatId, 'Choose an interval:', options);
-}
-
-bot.on('location', (msg) => {
-    const { latitude, longitude } = msg.location;
-    const chatId = msg.chat.id;
-    bot.sendMessage(chatId, `Latitude: ${latitude}\nLongitude: ${longitude}`);
-})
-
-bot.on('edited_message', msg => {
-    if (msg.location) {
-        const { latitude, longitude } = msg.location;
-        const chatId = msg.chat.id;
-        bot.sendMessage(chatId, `Latitude: ${latitude}\nLongitude: ${longitude}`);
-    }
-})
+// bot.on('edited_message', msg => {
+//     if (msg.location) {
+//         const { latitude, longitude } = msg.location;
+//         const chatId = msg.chat.id;
+//         bot.sendMessage(chatId, `Latitude: ${latitude}\nLongitude: ${longitude}`);
+//     }
+// })
 
 bot.on('polling_error', (error) => {
     console.log(error);
+})
+
+// Callback queries used for inline keyboards
+bot.on('callback_query', query => {
+    const chatId = query.message.chat.id;
+    const game = Game.getGameById(chatId);
+    game?.handleCallbackQuery(query);
+
+    bot.answerCallbackQuery(query.id);
 });
