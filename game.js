@@ -16,6 +16,7 @@ module.exports = class Game {
         this.interval = 10;
         this.isPlaying = false;
         this.startMessage = null;
+        this.locationInterval = null;
 
         Game.games.push(this);
     }
@@ -24,13 +25,13 @@ module.exports = class Game {
      * Adds hunted to the game by user id
      * @param {int} id 
      * @param {string} firstName
-     * @returns {boolean} - true if hunted was added, false if hunted already exists
+     * @returns {Hunted} - The created hunted object
      */
     addHunted(id, firstName) {
-        if (this.hunted.find(hunted => hunted.id === id)) return false;
-
-        this.hunted.push(new Hunted(id, firstName));
-        return true;
+        if (Game.getGameByHuntedId(id)) return;
+        const hunted = new Hunted(id, firstName, this, Game.bot);
+        this.hunted.push(hunted);
+        return hunted;
     }
 
     /**
@@ -39,12 +40,7 @@ module.exports = class Game {
      * @param {array} [args] - arguments to replace in message
      * @returns {string} message in local language
      */
-    getMessage(messageKey, args = []) {
-        let message = messages[messageKey][this.language] || messages[messageKey].en;
-        args.forEach(arg => message = message.replace(arg.key, arg.value));
-
-        return message;
-    }
+    getMessage(messageKey, args = []) { return Game.getMessage(messageKey, this.language, args) };
 
     static getMessage(messageKey, language = 'en', args = []) {
         let message = messages[messageKey][language] || messages[messageKey].en;
@@ -102,6 +98,25 @@ module.exports = class Game {
     }
 
     /**
+     * Returns game by hunted id
+     * @param {int} huntedId - hunted id
+     * @returns {Game} - game
+     */
+    static getGameByHuntedId(huntedId) {
+        return Game.games.find(game => game.hunted.find(hunted => hunted.id === huntedId));
+    }
+
+    /**
+     * Returns hunted by hunted id
+     * @param {int} huntedId 
+     * @returns {Hunted} - hunted
+     */
+    static getHuntedById(huntedId) {
+        const game = Game.getGameByHuntedId(huntedId);
+        return game?.hunted.find(hunted => hunted.id === huntedId);
+    }
+
+    /**
      * Updates start message with current settings
      */
     updateStartMessage() {
@@ -152,25 +167,57 @@ module.exports = class Game {
         if (isNaN(interval)) return;
 
         this.interval += interval;
+        if (this.interval < 1) this.interval = 1;
         this.updateStartMessage();
     }
 
     handleJoinHunted(query) {
         const userId = query.from.id;
         const firstName = query.from.first_name;
-        if (!this.addHunted(userId, firstName)) return;
 
+        const hunted = this.addHunted(userId, firstName);
+        if (!hunted) return;
+
+        hunted.sendInitialMessage();
         this.updateStartMessage();
     }
 
     handleStartGame() {
         this.isPlaying = true;
         this.updateStartMessage();
+        this.locationInterval = setInterval(this.shareLocation.bind(this), this.interval * 60 * 1000);
     }
 
     handleStopGame() {
+        clearInterval(this.locationInterval);
         Game.bot.sendMessage(this.groupId, this.getMessage('game_stopped'));
         Game.games = Game.games.filter(game => game.groupId !== this.groupId);
         delete this;
+    }
+
+    shareLocation() {
+        this.hunted.forEach(async hunted => {
+            if (!hunted.location.lat || !hunted.location.long) return;
+            await Game.bot.sendMessage(
+                this.groupId,
+                this.getMessage(
+                    'game_send_location',
+                    [
+                        { key: '{hunted}', value: hunted.first_name },
+                        { key: '{timestamp}', value: new Date(hunted.location.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) }
+                    ]
+                ),
+                { parse_mode: 'HTML' }
+            );
+            await Game.bot.sendLocation(this.groupId, hunted.location.lat, hunted.location.long);
+        });
+    }
+
+    static handleLocation(msg) {
+        const chatId = msg.chat.id;
+        const hunted = Game.getHuntedById(chatId);
+        if (!hunted) return;
+
+        hunted.updateLocation(msg.location);
     }
 }

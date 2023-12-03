@@ -15,7 +15,7 @@ fs.readdirSync('./commands').forEach(file => {
 
 // Bot actions
 bot.on('message', (msg) => {
-    const text = msg.text.toLowerCase();
+    const text = msg.text?.toLowerCase();
 
     const command = commands.find(command => '/' + command.name === text);
     if (!command) return;
@@ -29,22 +29,13 @@ bot.on('message', (msg) => {
 });
 
 // For location sharing
-// bot.on('location', (msg) => {
-//     const { latitude, longitude } = msg.location;
-//     const chatId = msg.chat.id;
-//     bot.sendMessage(chatId, `Latitude: ${latitude}\nLongitude: ${longitude}`);
-// })
+bot.on('location', (msg) => {
+    Game.handleLocation(msg);
+})
 
-// bot.on('edited_message', msg => {
-//     if (msg.location) {
-//         const { latitude, longitude } = msg.location;
-//         const chatId = msg.chat.id;
-//         bot.sendMessage(chatId, `Latitude: ${latitude}\nLongitude: ${longitude}`);
-//     }
-// })
-
-bot.on('polling_error', (error) => {
-    console.log(error);
+bot.on('edited_message', msg => {
+    if (msg.location)
+        Game.handleLocation(msg);
 })
 
 // Callback queries used for inline keyboards
@@ -55,3 +46,8 @@ bot.on('callback_query', query => {
 
     bot.answerCallbackQuery(query.id);
 });
+
+
+bot.on('polling_error', (error) => {
+    console.log(error);
+})

@@ -4,12 +4,20 @@ const messages = {
         nl: 'Het spel wordt klaargemaakt.\n\n Het huidige interval voor het delen van de locatie van de voorvluchtige is {interval} minuten. Je kan het hieronder aanpassen.\n\n De voortvluchtige (persoon die zijn locatie deelt) kan ingesteld worden door op de knop hieronder te drukken.\n\n Wanneer je klaar bent, druk op de knop hieronder om het spel te starten.\n\n\n Huidige voortvluchtige: \n {hunted}',
     },
     game_started: {
-        en: 'Game started.\n\n The hunted will share it\'s location every {interval} minutes.\n\n Press the button stop to stop the game\n\n\n Current hunted: \n {hunted}',
-        nl: 'Het spel is gestart.\n\n De voortvluchtige zal zijn locatie delen elke {interval} minuten.\n\n Druk op de knop stop om het spel te stoppen.\n\n\n Huidige voortvluchtige: \n {hunted}',
+        en: 'Game started!\n\n You\'ll be able to see the location of the hunted every {interval} minutes.\n\n Press the button stop to stop the game\n\n\n Current hunted: \n {hunted}',
+        nl: 'Spel gestart!\n\n Je zal de locatie van de voortvluchtige elke {interval} minuten kunnen zien.\n\n Druk op de knop stop om het spel te stoppen\n\n\n Huidige voortvluchtige: \n {hunted}',
     },
     game_stopped: {
         en: 'Game stopped',
         nl: 'Spel gestopt',
+    },
+    game_send_location: {
+        en: '{hunted} is here:\n<i>{timestamp}</i>',
+        nl: '{hunted} is hier:\n<i>{timestamp}</i>',
+    },
+    hunted_initialize: {
+        en: 'You are now the hunted, please share your live location with me and I will share it with the group',
+        nl: 'Je bent nu de voortvluchtige, deel je live locatie met mij en ik zal het delen met de groep',
     },
     keyboard_join_as_hunted: {
         en: 'Join as hunted',
