@@ -27,6 +27,10 @@ const messages = {
         en: 'Game in this loby already exists',
         nl: 'Er bestaat al een spel in deze lobby',
     },
+    error_start_only_in_groups: {
+        en: 'This command can only be used in groups',
+        nl: 'Dit command kan alleen gebruikt worden in groepen',
+    },
 }
 
 module.exports = messages;

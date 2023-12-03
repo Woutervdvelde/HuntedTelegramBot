@@ -46,6 +46,13 @@ module.exports = class Game {
         return message;
     }
 
+    static getMessage(messageKey, language = 'en', args = []) {
+        let message = messages[messageKey][language] || messages[messageKey].en;
+        args.forEach(arg => message = message.replace(arg.key, arg.value));
+
+        return message;
+    }
+
     /**
      * Returns options for start message
      * @returns {object} - options for start message

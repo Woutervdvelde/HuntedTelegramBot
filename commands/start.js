@@ -4,6 +4,10 @@ module.exports = {
     name: 'start',
     description: 'Start the game',
     middleware(msg) {
+        const type = msg.chat.type;
+        if (type !== 'group' && type !== 'supergroup')
+            return Game.getMessage('error_start_only_in_groups', msg.from.language_code);
+        
         return true;
     },
     async execute(bot, msg) {
