@@ -1,5 +1,6 @@
 const Hunted = require('./hunted');
 const messages = require('./messages');
+const sqlite3 = require('sqlite3').verbose();
 
 module.exports = class Game {
     static games = [];
@@ -19,6 +20,10 @@ module.exports = class Game {
         this.locationInterval = null;
 
         Game.games.push(this);
+        // Save game to database
+        const db = new sqlite3.Database('./db.sqlite');
+        db.run(`INSERT INTO game (chat_id, language, interval, is_playing, start_message_id, location_interval) VALUES (?, ?, ?, ?, ?, ?)`,
+            [this.groupId, this.language, this.interval, this.isPlaying, this.startMessage?.message_id, this.locationInterval]);
     }
 
     /**
@@ -218,6 +223,12 @@ module.exports = class Game {
         const hunted = Game.getHuntedById(chatId);
         if (!hunted) return;
 
+
         hunted.updateLocation(msg.location);
+        // save location to database
+        const db = new sqlite3.Database('./db.sqlite');
+        db.run(`INSERT INTO location (player_id, latitude, longitude, timestamp) VALUES (?, ?, ?, ?)`,
+            [hunted.id, hunted.location.lat, hunted.location.long, hunted.location.timestamp]);
+        db.close();
     }
 }

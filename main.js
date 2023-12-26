@@ -2,6 +2,7 @@ require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
 const Game = require('./game');
+const sqlite3 = require('sqlite3').verbose();
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
@@ -12,6 +13,34 @@ const commands = [];
 fs.readdirSync('./commands').forEach(file => {
     commands.push(require(`./commands/${file}`));
 });
+
+// Create database tables if not exists
+const db = new sqlite3.Database('./db.sqlite');
+db.run(`CREATE TABLE IF NOT EXISTS game (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id INTEGER,
+    language TEXT,
+    interval INTEGER,
+    is_playing INTEGER,
+    start_message_id INTEGER,
+    location_interval INTEGER
+)`);
+
+db.run(`CREATE TABLE IF NOT EXISTS player (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id INTEGER,
+    user_id INTEGER,
+    type INTEGER
+)`);
+
+db.run(`CREATE TABLE IF NOT EXISTS location (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id INTEGER,
+    latitude REAL,
+    longitude REAL,
+    timestamp INTEGER
+)`);
+db.close();
 
 // Bot actions
 bot.on('message', (msg) => {
